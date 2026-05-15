@@ -113,6 +113,15 @@ export default function FacilityMap({
       const { autonomous, nonAutonomous, humans, selectedId, insightOverlay, selectedPoint, facility } =
         stateRef.current
 
+      // Live zoom factor — every text size and label offset scales by `zoom`
+      // so labels grow/shrink with their zones instead of overflowing.
+      // MIN_TEXT_PX is the floor below which labels are hidden entirely
+      // (text under ~6px is unreadable; better to drop it than overlap).
+      const zoom = viewRef.current.zoom
+      const MIN_TEXT_PX = 6
+      const scaledFont = (px, weight = '') => `${weight ? weight + ' ' : ''}${px * zoom}px Montserrat, sans-serif`
+      const scaledMono = (px, weight = '') => `${weight ? weight + ' ' : ''}${px * zoom}px JetBrains Mono, monospace`
+
       // background
       ctx.fillStyle = PALETTE.bgCanvas
       ctx.fillRect(0, 0, W, H)
@@ -129,11 +138,13 @@ export default function FacilityMap({
           ctx.lineWidth = 1.2
           ctx.fillRect(tl.x, tl.y, w, h)
           ctx.strokeRect(tl.x, tl.y, w, h)
-          ctx.fillStyle = 'rgba(10, 25, 41, 0.75)'
-          ctx.font = 'bold 11px Montserrat, sans-serif'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(fac.label, tl.x + w / 2, tl.y + h / 2)
+          if (11 * zoom >= MIN_TEXT_PX) {
+            ctx.fillStyle = 'rgba(10, 25, 41, 0.75)'
+            ctx.font = scaledFont(11, 'bold')
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(fac.label, tl.x + w / 2, tl.y + h / 2)
+          }
         }
         // campus shuttles drawn below as autonomous
       } else {
@@ -148,11 +159,13 @@ export default function FacilityMap({
           ctx.lineWidth = 0.8
           ctx.fillRect(tl.x, tl.y, w, h)
           ctx.strokeRect(tl.x, tl.y, w, h)
-          ctx.fillStyle = z.forbidden ? PALETTE.zoneLabelForbidden : PALETTE.zoneLabel
-          ctx.font = '600 10.5px Montserrat, sans-serif'
-          ctx.textAlign = 'left'
-          ctx.textBaseline = 'top'
-          ctx.fillText(z.label, tl.x + 5, tl.y + 5)
+          if (10.5 * zoom >= MIN_TEXT_PX) {
+            ctx.fillStyle = z.forbidden ? PALETTE.zoneLabelForbidden : PALETTE.zoneLabel
+            ctx.font = scaledFont(10.5, '600')
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'top'
+            ctx.fillText(z.label, tl.x + 5 * zoom, tl.y + 5 * zoom)
+          }
         }
         // walls
         ctx.strokeStyle = PALETTE.wall
@@ -180,11 +193,13 @@ export default function FacilityMap({
         ctx.lineWidth = 1
         ctx.fillRect(tl.x, tl.y, w, h)
         ctx.strokeRect(tl.x, tl.y, w, h)
-        ctx.fillStyle = PALETTE.chargeStationLabel
-        ctx.font = 'bold 8px JetBrains Mono, monospace'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText('⚡ CHARGING', tl.x + w / 2, tl.y + h / 2)
+        if (8 * zoom >= MIN_TEXT_PX) {
+          ctx.fillStyle = PALETTE.chargeStationLabel
+          ctx.font = scaledMono(8, 'bold')
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('⚡ CHARGING', tl.x + w / 2, tl.y + h / 2)
+        }
       }
 
       // ── ROBOT PATHS (faint lines) ─────────────────────────────────────
@@ -250,7 +265,7 @@ export default function FacilityMap({
         ctx.setLineDash([])
         const mid = toPx(0.35, 0.5)
         ctx.fillStyle = 'rgba(217, 100, 95, 0.85)'
-        ctx.font = 'bold 10px Montserrat, sans-serif'
+        ctx.font = scaledFont(10, 'bold')
         ctx.textAlign = 'center'
         ctx.fillText('BOTTLENECK', mid.x, mid.y)
       }
@@ -266,6 +281,8 @@ export default function FacilityMap({
           ctx.beginPath()
           ctx.arc(p.x, p.y, 14 + 4 * pulse, 0, Math.PI * 2)
           ctx.stroke()
+          // SLOW alert sits on a fixed-screen-size robot pin, so neither the
+          // text size nor offset scales with zoom (keeps it readable at any zoom).
           ctx.fillStyle = 'rgba(217, 100, 95, 0.85)'
           ctx.font = 'bold 9px Montserrat, sans-serif'
           ctx.textAlign = 'center'
@@ -318,9 +335,9 @@ export default function FacilityMap({
         ctx.setLineDash([])
         const mid = toPx(path[Math.floor(path.length / 2)].x, path[Math.floor(path.length / 2)].y)
         ctx.fillStyle = 'rgba(1, 115, 241, 0.95)'
-        ctx.font = 'bold 9px Montserrat, sans-serif'
+        ctx.font = scaledFont(9, 'bold')
         ctx.textAlign = 'center'
-        ctx.fillText('+1 ROBOT = −30% WAIT TIME', mid.x, mid.y - 14)
+        ctx.fillText('+1 ROBOT = −30% WAIT TIME', mid.x, mid.y - 14 * zoom)
         ctx.strokeStyle = 'rgba(1, 115, 241, 0.9)'
         ctx.lineWidth = 2
         ctx.beginPath()
@@ -373,15 +390,15 @@ export default function FacilityMap({
         ctx.setLineDash([])
         // legend
         const ll = toPx(0.5, 0.02)
-        ctx.font = '9px Montserrat, sans-serif'
+        ctx.font = scaledFont(9)
         ctx.textAlign = 'center'
         ctx.fillStyle = 'rgba(217, 100, 95, 0.85)'
-        ctx.fillText('— Current path', ll.x - 70, ll.y + 4)
-        ctx.fillStyle = 'rgba(217, 233, 255, 0.9)'
-        ctx.fillText('— Optimized path', ll.x + 70, ll.y + 4)
+        ctx.fillText('— Current path', ll.x - 70 * zoom, ll.y + 4 * zoom)
+        ctx.fillStyle = 'rgba(1, 115, 241, 0.85)'
+        ctx.fillText('— Optimized path', ll.x + 70 * zoom, ll.y + 4 * zoom)
         ctx.fillStyle = PALETTE.textMuted
-        ctx.font = '7px Montserrat, sans-serif'
-        ctx.fillText('Based on 100,000 simulation runs', ll.x, ll.y + 14)
+        ctx.font = scaledFont(7)
+        ctx.fillText('Based on 100,000 simulation runs', ll.x, ll.y + 14 * zoom)
       }
 
       // ── ASSETS: AUTONOMOUS ─────────────────────────────────────────────
@@ -415,8 +432,10 @@ export default function FacilityMap({
         ctx.restore()
 
         // status pill — charging / maintenance
+        // The robot circle stays a constant screen size (like a map pin),
+        // so glyph offsets are NOT scaled by zoom.
         if (r.status === 'charging') {
-          ctx.fillStyle = PALETTE.blueLight
+          ctx.fillStyle = PALETTE.blue
           ctx.font = 'bold 8px JetBrains Mono, monospace'
           ctx.textAlign = 'center'
           ctx.fillText('⚡', p.x, p.y + 3)
