@@ -59,8 +59,12 @@ export default function Sidebar({
         <div className="panel-header">
           <div className="brand-product-name">FlowOS</div>
           <div className="brand-parent-row">
-            <img src="./verticalai-logo.png" alt="VerticalAI" className="brand-mark" />
-            <span className="brand-parent-text">A VerticalAI product</span>
+            <span className="brand-wordmark">
+              <span className="brand-wordmark-blue">Vertical</span>
+              <span className="brand-wordmark-coral">AI</span>
+            </span>
+            <span className="brand-parent-divider">·</span>
+            <span className="brand-parent-text">Product</span>
           </div>
           <p className="brand-tagline">
             The Digital AI orchestration layer for plant logistics — one brain for every robot,

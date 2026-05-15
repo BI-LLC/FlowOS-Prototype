@@ -13,8 +13,8 @@ const PALETTE = {
   zoneForbidden: '#FBEEED',   // coral-50, forbidden areas
   zoneStroke: '#E2E8F0',      // line color
   zoneStrokeForbidden: 'rgba(217, 100, 95, 0.35)',
-  zoneLabel: 'rgba(44, 62, 80, 0.55)',     // ink-2 muted
-  zoneLabelForbidden: 'rgba(217, 100, 95, 0.85)',
+  zoneLabel: 'rgba(44, 62, 80, 0.75)',      // ink-2 — readable on light fill
+  zoneLabelForbidden: 'rgba(217, 100, 95, 0.9)',
   wall: 'rgba(44, 62, 80, 0.35)',          // ink-2 walls
   blue: '#0173F1',
   blueLight: '#D9E9FF',
@@ -93,6 +93,15 @@ export default function FacilityMap({
   useEffect(() => {
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
+
+    // Hi-DPI setup: render at devicePixelRatio so text stays sharp when the
+    // CSS layer stretches the canvas. Drawing code keeps using the logical
+    // (W, H) coordinate space because ctx is pre-scaled.
+    const dpr = Math.max(1, window.devicePixelRatio || 1)
+    canvas.width = W * dpr
+    canvas.height = H * dpr
+    ctx.scale(dpr, dpr)
+
     let raf
     let last = performance.now()
 
@@ -140,10 +149,10 @@ export default function FacilityMap({
           ctx.fillRect(tl.x, tl.y, w, h)
           ctx.strokeRect(tl.x, tl.y, w, h)
           ctx.fillStyle = z.forbidden ? PALETTE.zoneLabelForbidden : PALETTE.zoneLabel
-          ctx.font = '9px Montserrat, sans-serif'
+          ctx.font = '600 10.5px Montserrat, sans-serif'
           ctx.textAlign = 'left'
           ctx.textBaseline = 'top'
-          ctx.fillText(z.label, tl.x + 4, tl.y + 4)
+          ctx.fillText(z.label, tl.x + 5, tl.y + 5)
         }
         // walls
         ctx.strokeStyle = PALETTE.wall
@@ -159,20 +168,23 @@ export default function FacilityMap({
       }
 
       // ── CHARGING STATION marker (in-facility only) ────────────────────
+      // Anchored to the bottom-left strip — separated from any zone label
+      // so the two text strings don't compete for the same pixels.
       if (!facility.isCampus) {
-        const cs = { x: 0.01, y: 0.55, w: 0.1, h: 0.05 }
+        const cs = { x: 0.01, y: 0.94, w: 0.1, h: 0.05 }
         const tl = toPx(cs.x, cs.y)
         const w = cs.w * W * viewRef.current.zoom
         const h = cs.h * H * viewRef.current.zoom
         ctx.fillStyle = PALETTE.chargeStation
         ctx.strokeStyle = PALETTE.chargeStationStroke
-        ctx.lineWidth = 0.8
+        ctx.lineWidth = 1
         ctx.fillRect(tl.x, tl.y, w, h)
         ctx.strokeRect(tl.x, tl.y, w, h)
-        ctx.fillStyle = 'rgba(1, 115, 241, 0.45)'
-        ctx.font = '7px JetBrains Mono, monospace'
-        ctx.textAlign = 'left'
-        ctx.fillText('CHARGING STATION', tl.x + 3, tl.y + 9)
+        ctx.fillStyle = PALETTE.chargeStationLabel
+        ctx.font = 'bold 8px JetBrains Mono, monospace'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('⚡ CHARGING', tl.x + w / 2, tl.y + h / 2)
       }
 
       // ── ROBOT PATHS (faint lines) ─────────────────────────────────────
@@ -528,13 +540,8 @@ export default function FacilityMap({
     const scaleY = H / rect.height
     const mx = (e.clientX - rect.left) * scaleX
     const my = (e.clientY - rect.top) * scaleY
-    const v = viewRef.current
     const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08
-    const newZoom = Math.max(0.5, Math.min(3, v.zoom * factor))
-    v.panX = mx - ((mx - v.panX) * newZoom) / v.zoom
-    v.panY = my - ((my - v.panY) * newZoom) / v.zoom
-    v.zoom = newZoom
-    force((n) => n + 1)
+    applyZoom(factor, mx, my)
   }
 
   const onClick = (e) => {
@@ -573,6 +580,28 @@ export default function FacilityMap({
     }
   }
 
+  // Centralized zoom helper so the button controls, wheel scroll, and reset
+  // share the same logic. Anchor argument is the canvas-pixel point to keep
+  // stable while scaling (cursor for wheel, center for buttons).
+  const applyZoom = (factor, anchorX, anchorY) => {
+    const v = viewRef.current
+    const newZoom = Math.max(0.5, Math.min(3, v.zoom * factor))
+    if (anchorX === undefined) {
+      anchorX = W / 2
+      anchorY = H / 2
+    }
+    v.panX = anchorX - ((anchorX - v.panX) * newZoom) / v.zoom
+    v.panY = anchorY - ((anchorY - v.panY) * newZoom) / v.zoom
+    v.zoom = newZoom
+    force((n) => n + 1)
+  }
+  const resetView = () => {
+    viewRef.current.panX = 0
+    viewRef.current.panY = 0
+    viewRef.current.zoom = 1
+    force((n) => n + 1)
+  }
+
   return (
     <div className="map-wrap">
       <canvas
@@ -588,6 +617,18 @@ export default function FacilityMap({
         onClick={onClick}
         style={{ cursor: 'crosshair' }}
       />
+      <div className="zoom-controls">
+        <button className="zoom-btn" onClick={() => applyZoom(1.2)} aria-label="Zoom in">
+          +
+        </button>
+        <div className="zoom-readout">{Math.round(viewRef.current.zoom * 100)}%</div>
+        <button className="zoom-btn" onClick={() => applyZoom(1 / 1.2)} aria-label="Zoom out">
+          −
+        </button>
+        <button className="zoom-btn zoom-reset" onClick={resetView} aria-label="Reset view" title="Reset view">
+          ⌂
+        </button>
+      </div>
     </div>
   )
 }
