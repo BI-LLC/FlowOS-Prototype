@@ -4,28 +4,29 @@ import { ROBOT_PATHS } from '../data/fleet'
 const W = 800
 const H = 560
 
-// Brand-aligned palette (also exposed as CSS vars in App.css)
+// Brand-aligned palette for light theme.
+// Canvas drawing operations need raw color strings (not CSS vars), so
+// the palette is duplicated here. Keep in sync with App.css.
 const PALETTE = {
-  bgDeepest: '#0A1929',
-  bgPanel: '#14233A',
-  zoneFill: '#1A2540',
-  zoneForbidden: '#3A1E1E',
-  wall: 'rgba(180, 200, 230, 0.18)',
-  zoneStroke: 'rgba(74, 158, 255, 0.12)',
+  bgCanvas: '#FFFFFF',        // map background
+  zoneFill: '#F5F6F8',        // standard zone (subtle grey card on white)
+  zoneForbidden: '#FBEEED',   // coral-50, forbidden areas
+  zoneStroke: '#E2E8F0',      // line color
   zoneStrokeForbidden: 'rgba(217, 100, 95, 0.35)',
-  zoneLabel: 'rgba(180, 200, 230, 0.45)',
+  zoneLabel: 'rgba(44, 62, 80, 0.55)',     // ink-2 muted
+  zoneLabelForbidden: 'rgba(217, 100, 95, 0.85)',
+  wall: 'rgba(44, 62, 80, 0.35)',          // ink-2 walls
   blue: '#0173F1',
-  blueGlow: 'rgba(1, 115, 241, 0.4)',
-  blueRoute: 'rgba(1, 115, 241, 0.55)',
-  blueRouteDim: 'rgba(1, 115, 241, 0.12)',
   blueLight: '#D9E9FF',
+  blueRoute: 'rgba(1, 115, 241, 0.55)',
+  blueRouteDim: 'rgba(1, 115, 241, 0.14)',
   coral: '#D9645F',
   coralFade: 'rgba(217, 100, 95, 0.45)',
-  silver: '#94A3B8',
-  silverDim: 'rgba(148, 163, 184, 0.4)',
-  chargeStation: 'rgba(1, 115, 241, 0.08)',
-  chargeStationStroke: 'rgba(1, 115, 241, 0.25)',
-  textMuted: 'rgba(200, 220, 255, 0.6)',
+  silver: '#2C3E50',          // ink-2 for forklift squares (visible on white)
+  chargeStation: 'rgba(1, 115, 241, 0.06)',
+  chargeStationStroke: 'rgba(1, 115, 241, 0.3)',
+  chargeStationLabel: 'rgba(1, 115, 241, 0.7)',
+  textMuted: 'rgba(44, 62, 80, 0.6)',
 }
 
 export default function FacilityMap({
@@ -104,7 +105,7 @@ export default function FacilityMap({
         stateRef.current
 
       // background
-      ctx.fillStyle = PALETTE.bgDeepest
+      ctx.fillStyle = PALETTE.bgCanvas
       ctx.fillRect(0, 0, W, H)
 
       // ── ZONES ──────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ export default function FacilityMap({
           ctx.lineWidth = 1.2
           ctx.fillRect(tl.x, tl.y, w, h)
           ctx.strokeRect(tl.x, tl.y, w, h)
-          ctx.fillStyle = 'rgba(180, 200, 230, 0.7)'
+          ctx.fillStyle = 'rgba(10, 25, 41, 0.75)'
           ctx.font = 'bold 11px Montserrat, sans-serif'
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
@@ -131,12 +132,14 @@ export default function FacilityMap({
           const tl = toPx(z.x, z.y)
           const w = z.w * W * viewRef.current.zoom
           const h = z.h * H * viewRef.current.zoom
-          ctx.fillStyle = z.forbidden ? PALETTE.zoneForbidden : z.color || PALETTE.zoneFill
+          // Zone fill is theme-controlled (PALETTE) — the per-zone `color`
+          // field in facilities.js is a legacy holdover from the dark theme.
+          ctx.fillStyle = z.forbidden ? PALETTE.zoneForbidden : PALETTE.zoneFill
           ctx.strokeStyle = z.forbidden ? PALETTE.zoneStrokeForbidden : PALETTE.zoneStroke
           ctx.lineWidth = 0.8
           ctx.fillRect(tl.x, tl.y, w, h)
           ctx.strokeRect(tl.x, tl.y, w, h)
-          ctx.fillStyle = z.forbidden ? 'rgba(217, 100, 95, 0.6)' : PALETTE.zoneLabel
+          ctx.fillStyle = z.forbidden ? PALETTE.zoneLabelForbidden : PALETTE.zoneLabel
           ctx.font = '9px Montserrat, sans-serif'
           ctx.textAlign = 'left'
           ctx.textBaseline = 'top'
@@ -269,10 +272,10 @@ export default function FacilityMap({
           // Recolor path by efficiency: blue (fast) → coral (slow)
           const color =
             speedRatio > 0.8
-              ? `rgba(1, 115, 241, 0.7)`
+              ? `rgba(1, 115, 241, 0.8)`
               : speedRatio > 0.5
-              ? `rgba(180, 130, 130, 0.7)`
-              : `rgba(217, 100, 95, 0.8)`
+              ? `rgba(217, 142, 95, 0.85)`
+              : `rgba(217, 100, 95, 0.9)`
           ctx.strokeStyle = color
           ctx.lineWidth = 2.5
           ctx.beginPath()
@@ -302,7 +305,7 @@ export default function FacilityMap({
         ctx.stroke()
         ctx.setLineDash([])
         const mid = toPx(path[Math.floor(path.length / 2)].x, path[Math.floor(path.length / 2)].y)
-        ctx.fillStyle = 'rgba(217, 228, 247, 0.95)'
+        ctx.fillStyle = 'rgba(1, 115, 241, 0.95)'
         ctx.font = 'bold 9px Montserrat, sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText('+1 ROBOT = −30% WAIT TIME', mid.x, mid.y - 14)
@@ -391,7 +394,7 @@ export default function FacilityMap({
         ctx.save()
         ctx.translate(p.x, p.y)
         ctx.fillStyle = r.color
-        ctx.strokeStyle = isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.4)'
+        ctx.strokeStyle = isSelected ? '#0A1929' : 'rgba(10, 25, 41, 0.45)'
         ctx.lineWidth = isSelected ? 2 : 1
         ctx.beginPath()
         ctx.arc(0, 0, size, 0, Math.PI * 2)
@@ -417,7 +420,33 @@ export default function FacilityMap({
       for (const t of nonAutonomous) {
         const p = toPx(t.x, t.y)
         const isSelected = t.id === selectedId
-        const size = 7
+        const size = isSelected ? 9 : 7
+
+        // Selected: draw a "current heading" line to the target so the asset's
+        // direction-of-travel is visible on the map (matches the route-highlight
+        // behaviour autonomous assets get from their closed-loop paths).
+        if (isSelected && t.targetX !== undefined) {
+          const tp = toPx(t.targetX, t.targetY)
+          ctx.strokeStyle = 'rgba(217, 100, 95, 0.6)'
+          ctx.lineWidth = 2
+          ctx.setLineDash([8, 5])
+          ctx.beginPath()
+          ctx.moveTo(p.x, p.y)
+          ctx.lineTo(tp.x, tp.y)
+          ctx.stroke()
+          ctx.setLineDash([])
+          // target marker
+          ctx.fillStyle = 'rgba(217, 100, 95, 0.7)'
+          ctx.beginPath()
+          ctx.arc(tp.x, tp.y, 5, 0, Math.PI * 2)
+          ctx.fill()
+          // selection ring around current position
+          ctx.strokeStyle = 'rgba(217, 100, 95, 0.85)'
+          ctx.lineWidth = 1.5
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, size + 6, 0, Math.PI * 2)
+          ctx.stroke()
+        }
 
         // spaghetti trail
         if (t.showSpaghetti && t.trail && t.trail.length > 1) {
@@ -433,7 +462,7 @@ export default function FacilityMap({
         }
 
         ctx.fillStyle = t.color
-        ctx.strokeStyle = isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.3)'
+        ctx.strokeStyle = isSelected ? '#0A1929' : 'rgba(10, 25, 41, 0.35)'
         ctx.lineWidth = isSelected ? 1.8 : 0.8
         // square for non-autonomous
         ctx.beginPath()
@@ -461,10 +490,12 @@ export default function FacilityMap({
   const onPointerDown = (e) => {
     if (spaceRef.current) {
       const rect = canvasRef.current.getBoundingClientRect()
+      const scaleX = W / rect.width
+      const scaleY = H / rect.height
       dragRef.current = {
         dragging: true,
-        startX: e.clientX - rect.left,
-        startY: e.clientY - rect.top,
+        startX: (e.clientX - rect.left) * scaleX,
+        startY: (e.clientY - rect.top) * scaleY,
         startPanX: viewRef.current.panX,
         startPanY: viewRef.current.panY,
       }
@@ -475,8 +506,10 @@ export default function FacilityMap({
   const onPointerMove = (e) => {
     if (!dragRef.current.dragging) return
     const rect = canvasRef.current.getBoundingClientRect()
-    const dx = e.clientX - rect.left - dragRef.current.startX
-    const dy = e.clientY - rect.top - dragRef.current.startY
+    const scaleX = W / rect.width
+    const scaleY = H / rect.height
+    const dx = (e.clientX - rect.left) * scaleX - dragRef.current.startX
+    const dy = (e.clientY - rect.top) * scaleY - dragRef.current.startY
     viewRef.current.panX = dragRef.current.startPanX + dx
     viewRef.current.panY = dragRef.current.startPanY + dy
   }
@@ -491,8 +524,10 @@ export default function FacilityMap({
   const onWheel = (e) => {
     e.preventDefault()
     const rect = canvasRef.current.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
+    const scaleX = W / rect.width
+    const scaleY = H / rect.height
+    const mx = (e.clientX - rect.left) * scaleX
+    const my = (e.clientY - rect.top) * scaleY
     const v = viewRef.current
     const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08
     const newZoom = Math.max(0.5, Math.min(3, v.zoom * factor))
@@ -505,14 +540,21 @@ export default function FacilityMap({
   const onClick = (e) => {
     if (spaceRef.current) return
     const rect = canvasRef.current.getBoundingClientRect()
-    const cx = e.clientX - rect.left
-    const cy = e.clientY - rect.top
+    // Convert CSS pixels → canvas internal pixels. The canvas is rendered at
+    // 800x560 logical resolution but stretched by CSS, so without this the
+    // click point would drift increasingly off-target on larger screens.
+    const scaleX = W / rect.width
+    const scaleY = H / rect.height
+    const cx = (e.clientX - rect.left) * scaleX
+    const cy = (e.clientY - rect.top) * scaleY
     const v = viewRef.current
     // worldX = (cx - panX) / zoom / W
     const worldX = (cx - v.panX) / v.zoom / W
     const worldY = (cy - v.panY) / v.zoom / H
 
-    // hit test autonomous
+    // Hit test: prefer autonomous (round, 10–13px) but include non-autonomous
+    // (squares, 7px half-edge). Generous 0.05 world-unit radius so selection
+    // feels forgiving without overlapping neighbours.
     const all = [...autonomous, ...nonAutonomous]
     let best = null
     let bestDist = Infinity
@@ -524,7 +566,7 @@ export default function FacilityMap({
         best = a
       }
     }
-    if (best && bestDist < 0.03) {
+    if (best && bestDist < 0.05) {
       onSelect(best.id === selectedId ? null : best.id)
     } else {
       onSelect(null)

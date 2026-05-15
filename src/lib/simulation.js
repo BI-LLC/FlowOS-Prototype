@@ -16,10 +16,10 @@ import {
 } from '../data/fleet'
 
 // Brand-aligned palette — see /src/App.css for full token list.
-// Autonomous robots use VerticalAI blue; non-autonomous and humans use
-// secondary tokens so the eye can scan asset categories at a glance.
+// Autonomous robots use VerticalAI blue; non-autonomous use ink-2 (the
+// darkest neutral) so they stand out on the light canvas. Humans use coral.
 const COLOR_AUTONOMOUS = '#0173F1'
-const COLOR_NON_AUTONOMOUS = '#94A3B8'
+const COLOR_NON_AUTONOMOUS = '#2C3E50'
 const COLOR_HUMAN = '#D9645F'
 
 const PROXIMITY_THRESHOLD = 0.05
@@ -69,8 +69,8 @@ export function spawnAutonomous() {
       path,
       currentSegment: seg,
       segmentProgress: status === 'active' ? prog : 0,
-      baseSpeed: rand(0.15, 0.35),
-      speed: status === 'active' ? rand(0.15, 0.35) : 0,
+      baseSpeed: rand(0.07, 0.16),
+      speed: status === 'active' ? rand(0.07, 0.16) : 0,
       battery: Math.round(status === 'charging' ? rand(5, 40) : rand(15, 100)),
       payload: Math.round(rand(0, 500)),
       maxPayload: Math.round(rand(500, 1500)),
@@ -140,7 +140,7 @@ export function spawnForklifts() {
       y,
       targetX,
       targetY,
-      speed: rand(0.04, 0.1),
+      speed: rand(0.015, 0.04),
       status: 'active',
       color: COLOR_NON_AUTONOMOUS,
       trail,
@@ -172,7 +172,7 @@ export function spawnTrucks() {
       y,
       targetX: tx,
       targetY: ty,
-      speed: rand(0.05, 0.12),
+      speed: rand(0.02, 0.05),
       status: 'active',
       color: COLOR_NON_AUTONOMOUS,
       trail,
@@ -202,7 +202,7 @@ export function spawnHumans() {
       y: spot.y,
       targetX: spot.x + (Math.random() - 0.5) * 0.15,
       targetY: spot.y + (Math.random() - 0.5) * 0.15,
-      speed: rand(0.02, 0.06),
+      speed: rand(0.008, 0.025),
       color: COLOR_HUMAN,
     })
   }

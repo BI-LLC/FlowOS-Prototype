@@ -98,7 +98,7 @@ export default function DetailCard({ asset, onClose, onToggleSpaghetti }) {
           </div>
           <span
             className="detail-card-type-badge"
-            style={{ background: 'rgba(148, 163, 184, 0.18)', color: 'var(--silver)' }}
+            style={{ background: 'rgba(90, 104, 120, 0.12)', color: 'var(--ink-2)' }}
           >
             {asset.type}
           </span>
